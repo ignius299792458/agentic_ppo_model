@@ -1,12 +1,16 @@
 import datetime
-import random
-import numpy as np
+import time
 import torch
-import gymnasium as gym
 from torch.utils.tensorboard import SummaryWriter
 from src.agent import Agent
 from src.args import parse_args
 from src.env import make_envs
+from src.storage import init_storage
+from src.rollout import rollout
+from src.advantage import compute_advantages
+from src.ppo import ppo_update
+from src.logger import log_metrics
+from src.utils import seed_everything
 
 
 def main():
@@ -22,32 +26,38 @@ def main():
         % "\n".join([f"|{k}|{v}|" for k, v in vars(args).items()]),
     )
 
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    torch.backends.cudnn.deterministic = args.torch_deterministic
-
+    seed_everything(args)
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
-    
+
     envs = make_envs(args, run_name)
-    
-    agent = Agent(envs)
-    print("agent:", agent)
-    print("agent.actor:", agent.actor)
-    print("agent.critic:", agent.critic)
-    
-    # optimizer
+    agent = Agent(envs).to(device)
     optimizer = torch.optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
-    
+    storage = init_storage(args, envs, device)
 
-    assert isinstance(envs.single_action_space, gym.spaces.Discrete), "only discrete action spaces are supported"
-    print("envs.single_action_space:", envs.single_action_space)
-    print("envs.single_observation_space:", envs.single_observation_space)
+    global_step = 0
+    start_time = time.time()
+    next_obs, _ = envs.reset()
+    next_obs = torch.Tensor(next_obs).to(device)
+    next_done = torch.zeros(args.num_envs).to(device)
+    num_updates = args.total_timesteps // args.batch_size
 
-    obs, info = envs.reset()
-    for step in range(args.total_timesteps // args.num_envs):
-        actions = np.array([envs.single_action_space.sample() for _ in range(args.num_envs)])
-        obs, rewards, terminated, truncated, info = envs.step(actions)
+    for update in range(1, num_updates + 1):
+        if args.anneal_lr:
+            frac = 1.0 - (update - 1.0) / num_updates
+            optimizer.param_groups[0]["lr"] = frac * args.learning_rate
+
+        next_obs, next_done, global_step = rollout(
+            args, agent, envs, device, storage, next_obs, next_done, global_step, writer
+        )
+
+        advantages, returns = compute_advantages(
+            args, agent, next_obs, next_done, storage, device
+        )
+
+        metrics = ppo_update(args, agent, optimizer, envs, storage, advantages, returns)
+
+        sps = int(global_step / (time.time() - start_time))
+        log_metrics(writer, optimizer, metrics, global_step, sps, update, num_updates)
 
     envs.close()
     writer.close()

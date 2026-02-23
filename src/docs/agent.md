@@ -5,6 +5,211 @@ starting from the absolute basics.
 
 ---
 
+# Part 0: The Imports — What Each Line Brings In
+
+```python
+import torch.nn as nn
+import torch.distributions.categorical as Categorical
+import numpy as np
+```
+
+Let's understand each one:
+
+---
+
+## `import torch.nn as nn`
+
+`torch` is **PyTorch** — the deep learning framework. Think of it as a toolbox
+for building and training neural networks.
+
+`torch.nn` is the **neural network** sub-module. We alias it as `nn` for short.
+
+It gives us everything we need to build a network:
+
+```
+nn.Module         The base class for ALL neural networks.
+                  Our Agent inherits from it.
+                  It automatically tracks all weights inside the network.
+
+nn.Sequential     A container that chains layers together.
+                  Data flows through them in order: layer1 → layer2 → layer3
+
+nn.Linear         A single "fully connected" layer.
+                  Does the math: output = weights × input + bias
+                  nn.Linear(4, 64) = 4 inputs, 64 outputs
+                  This layer has 4×64 = 256 weights + 64 biases = 320 learnable numbers
+
+nn.Tanh           Activation function. Squashes any number to [-1, +1].
+                  Adds non-linearity so the network can learn complex patterns.
+
+nn.init           Sub-module for weight initialization.
+                  nn.init.orthogonal_()  → set weights to orthogonal matrix
+                  nn.init.constant_()    → set values to a constant
+```
+
+### How They Compose Together
+
+```python
+nn.Sequential(
+    nn.Linear(4, 64),   # Layer 1: 4 → 64 numbers
+    nn.Tanh(),           # Squash to [-1, +1]
+    nn.Linear(64, 64),   # Layer 2: 64 → 64 numbers
+    nn.Tanh(),           # Squash again
+    nn.Linear(64, 2),    # Layer 3: 64 → 2 numbers (one per action)
+)
+```
+
+```
+Input [4]                     ← observation from CartPole
+   │
+   ▼
+nn.Linear(4, 64)             ← 320 learnable parameters (4×64 weights + 64 biases)
+   │  output = W₁ × input + b₁
+   ▼
+nn.Tanh()                    ← no parameters, just math: tanh(x)
+   │
+   ▼
+nn.Linear(64, 64)            ← 4160 learnable parameters (64×64 + 64)
+   │  output = W₂ × input + b₂
+   ▼
+nn.Tanh()
+   │
+   ▼
+nn.Linear(64, 2)             ← 130 learnable parameters (64×2 + 2)
+   │  output = W₃ × input + b₃
+   ▼
+Output [2]                    ← one score per action (left, right)
+
+Total learnable parameters: 320 + 4160 + 130 = 4610
+These 4610 numbers are what "learning" adjusts!
+```
+
+---
+
+## `import torch.distributions.categorical as Categorical`
+
+This gives us the **Categorical distribution** — a probability distribution
+over a finite set of choices (like picking from a menu).
+
+```
+What is a Categorical Distribution?
+
+Imagine rolling a loaded die:
+  Face 1: 10% chance
+  Face 2: 30% chance
+  Face 3: 60% chance
+
+That's a Categorical distribution over {1, 2, 3}.
+
+For CartPole with 2 actions:
+  LEFT:  85% chance
+  RIGHT: 15% chance
+
+That's a Categorical distribution over {LEFT, RIGHT}.
+```
+
+### How It's Used in the Agent
+
+```python
+logits = actor_network(observation)        # → [1.5, -0.3]
+distribution = Categorical(logits=logits)  # converts to probabilities internally
+```
+
+```
+What are "logits"?
+
+Logits are RAW scores — they can be any number.
+Categorical converts them to probabilities using softmax:
+
+  logits:        [1.5,  -0.3]
+                   ↓
+  softmax:       [e^1.5 / (e^1.5 + e^-0.3),  e^-0.3 / (e^1.5 + e^-0.3)]
+                 [4.48 / 5.22,                 0.74 / 5.22]
+                   ↓
+  probabilities: [0.86,  0.14]
+                  LEFT   RIGHT
+```
+
+### Key Methods
+
+```
+distribution.sample()            Pick a random action based on probabilities.
+                                 86% of the time → LEFT, 14% → RIGHT.
+
+distribution.log_prob(action)    "How likely was this action?"
+                                 Returns log(probability).
+                                 log(0.86) = -0.15 for LEFT
+                                 log(0.14) = -1.97 for RIGHT
+                                 Used in PPO's ratio calculation.
+
+distribution.entropy()           "How uncertain is the distribution?"
+                                 High entropy [0.5, 0.5] = very uncertain
+                                 Low entropy [0.99, 0.01] = very confident
+                                 PPO uses this to encourage exploration.
+```
+
+### Why log_prob Instead of Just prob?
+
+```
+Math reasons:
+1. Probabilities multiply: P(A and B) = P(A) × P(B)
+   Logs turn multiplication into addition: log(A×B) = log(A) + log(B)
+   Addition is faster and more numerically stable.
+
+2. Probabilities can be tiny: 0.000001
+   log(0.000001) = -13.8  ← much easier for computers to work with
+
+3. PPO needs the RATIO of probabilities:
+   ratio = new_prob / old_prob
+   = exp(new_log_prob - old_log_prob)    ← subtraction instead of division!
+```
+
+---
+
+## `import numpy as np`
+
+**NumPy** is Python's library for fast math with arrays of numbers.
+
+In the agent, it's used for two things:
+
+```python
+np.sqrt(2)
+# → 1.4142...
+# The default std for layer initialization.
+# Why √2? It compensates for Tanh activation squashing values.
+
+np.prod(envs.single_observation_space.shape)
+# → 4 (for CartPole)
+# Multiplies all dimensions of the observation shape together.
+# CartPole shape is (4,), so np.prod((4,)) = 4
+# For an image input with shape (84, 84, 3), np.prod = 21168
+```
+
+---
+
+## Summary: What Each Import Provides
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ Import                            │ What We Use From It        │
+├─────────────────────────────────────────────────────────────────┤
+│ torch.nn as nn                    │ nn.Module      (base class)│
+│                                   │ nn.Sequential  (chain)     │
+│                                   │ nn.Linear      (layer)     │
+│                                   │ nn.Tanh        (activation)│
+│                                   │ nn.init.*      (init)      │
+├─────────────────────────────────────────────────────────────────┤
+│ torch.distributions.categorical   │ Categorical    (action     │
+│   as Categorical                  │   distribution for         │
+│                                   │   sampling & log_prob)     │
+├─────────────────────────────────────────────────────────────────┤
+│ numpy as np                       │ np.sqrt(2)     (init std)  │
+│                                   │ np.prod()      (obs shape) │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 # Part 1: Neural Networks (The Building Block)
 
 ## What is a Neural Network?

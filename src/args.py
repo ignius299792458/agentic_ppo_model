@@ -32,6 +32,28 @@ def parse_args():
         default=8,
         help="the number of environments to run in parallel",
     )
+
+    parser.add_argument(
+        "--num-steps",
+        type=int,
+        default=200,
+        help="the number of steps to run in each batch",
+    )
+
+    parser.add_argument(
+        "--num-minibatches",
+        type=int,
+        default=4,
+        help="the number of mini-batches",
+    )
+
+    parser.add_argument(
+        "--update-epochs",
+        type=int,
+        default=4,
+        help="the number of epochs to update the policy",
+    )
+
     parser.add_argument(
         "--total-timesteps",
         type=int,
@@ -46,6 +68,16 @@ def parse_args():
         nargs="?",
         const=True,
     )
+
+    parser.add_argument(
+        "--anneal-lr",
+        type=lambda x: bool(strtobool(x)),
+        default=True,
+        nargs="?",
+        const=True,
+        help="if toggled, the learning rate will be annealed",
+    )
+
     parser.add_argument(
         "--cuda",
         type=lambda x: bool(strtobool(x)),
@@ -86,7 +118,64 @@ def parse_args():
         default=False,
         help="if toggled, opens a live window to watch the agent play.",
     )
+
+    parser.add_argument(
+        "--gae",
+        type=lambda x: bool(strtobool(x)),
+        default=True,
+        help="if toggled, Generalized Advantage Estimation will be used",
+        nargs="?",
+        const=True,
+    )
+
+    parser.add_argument(
+        "--gamma",
+        type=float,
+        default=0.99,
+        help="the discount factor",
+    )
+
+    parser.add_argument(
+        "--gae-lambda",
+        type=float,
+        default=0.95,
+        help="the lambda value for Generalized Advantage Estimation",
+    )
+
+    parser.add_argument(
+        "--clip-coef",
+        type=float,
+        default=0.2,
+        help="the PPO clipping coefficient",
+    )
+    parser.add_argument(
+        "--clip-vloss",
+        type=lambda x: bool(strtobool(x)),
+        default=True,
+        nargs="?",
+        const=True,
+        help="toggles whether to clip the value loss",
+    )
+    parser.add_argument(
+        "--ent-coef",
+        type=float,
+        default=0.01,
+        help="entropy coefficient",
+    )
+    parser.add_argument(
+        "--vf-coef",
+        type=float,
+        default=0.5,
+        help="value function coefficient",
+    )
+    parser.add_argument(
+        "--max-grad-norm",
+        type=float,
+        default=0.5,
+        help="the maximum norm for gradient clipping",
+    )
+
     args = parser.parse_args()
-    # args.batch_size = int(args. * args.num_steps)
-    # args.minibatch_size = int(args.batch_size // 4)
+    args.batch_size = int(args.num_envs * args.num_steps)
+    args.minibatch_size = int(args.batch_size // args.num_minibatches)
     return args

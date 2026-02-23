@@ -1,17 +1,18 @@
 import torch.nn as nn
-import torch.distributions.categorical as Categorical
+from torch.distributions.categorical import Categorical
 import numpy as np
 
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
-  nn.init.orthogonal_(layer.weight, std)
-  nn.init.constant_(layer.bias, bias_const)
-  return layer
+    nn.init.orthogonal_(layer.weight, std)
+    nn.init.constant_(layer.bias, bias_const)
+    return layer
+
 
 class Agent(nn.Module):
     def __init__(self, envs):
         super(Agent, self).__init__()
-        
+
         self.critic = nn.Sequential(
             layer_init(nn.Linear(np.prod(envs.single_observation_space.shape), 64)),
             nn.Tanh(),
@@ -28,10 +29,11 @@ class Agent(nn.Module):
         )
 
     def get_value(self, x):
-        return self.critic(x) 
+        return self.critic(x)
 
     def get_action_and_value(self, x, action=None):
         action_logits = self.actor(x)
-        distribution = Categorical(logits=action_logits)
-        
-
+        probs = Categorical(logits=action_logits)
+        if action is None:
+            action = probs.sample()
+        return action, probs.log_prob(action), probs.entropy(), self.critic(x)

@@ -19,10 +19,13 @@ def _make_env(gym_id, seed, idx, capture_video, render, run_name):
 
     return thunk
 
+
 def make_envs(args, run_name):
     return gym.vector.SyncVectorEnv(
         [
-            _make_env(args.gym_id, args.seed + i, i, args.capture_video, args.render, run_name)
+            _make_env(
+                args.gym_id, args.seed + i, i, args.capture_video, args.render, run_name
+            )
             for i in range(args.num_envs)
         ]
-    ) 
+    )
