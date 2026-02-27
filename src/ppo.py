@@ -70,10 +70,14 @@ def ppo_update(args, agent, optimizer, envs, storage, advantages, returns):
                 )
 
             mb_advantages = b_advantages[mb_inds]
-            mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
+            mb_advantages = (mb_advantages - mb_advantages.mean()) / (
+                mb_advantages.std() + 1e-8
+            )
 
             pg_loss1 = -mb_advantages * ratio
-            pg_loss2 = -mb_advantages * torch.clamp(ratio, 1 - args.clip_coef, 1 + args.clip_coef)
+            pg_loss2 = -mb_advantages * torch.clamp(
+                ratio, 1 - args.clip_coef, 1 + args.clip_coef
+            )
             pg_loss = torch.max(pg_loss1, pg_loss2).mean()
 
             newvalue = newvalue.view(-1)

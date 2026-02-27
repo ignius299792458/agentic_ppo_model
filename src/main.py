@@ -52,19 +52,19 @@ def main():
 
     # Seed everything
     seed_everything(args)
-    
+
     # set devive if cuda is available
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
 
     # make parallel sync vector envs
     envs = make_envs(args, run_name)
-    
+
     # create agent
     agent = Agent(envs).to(device)
-    
+
     # create optimizer
     optimizer = torch.optim.Adam(agent.parameters(), lr=args.learning_rate, eps=1e-5)
-    
+
     # initialize storage
     storage = init_storage(args, envs, device)
 

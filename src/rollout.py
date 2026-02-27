@@ -10,7 +10,9 @@ import numpy as np
 import torch
 
 
-def rollout(args, agent, envs, device, storage, next_obs, next_done, global_step, writer):
+def rollout(
+    args, agent, envs, device, storage, next_obs, next_done, global_step, writer
+):
     """Collect a full rollout of experience from the environment.
 
     For each step:

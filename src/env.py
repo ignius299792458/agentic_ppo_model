@@ -8,7 +8,9 @@ from typing import Callable
 import gymnasium as gym
 
 
-def _make_env(gym_id, seed, idx, capture_video, run_name, render, renderAll=False) -> Callable:
+def _make_env(
+    gym_id, seed, idx, capture_video, run_name, render, renderAll=False
+) -> Callable:
     """Create a closure that builds a single environment instance.
 
     Only env index 0 gets rendering or video recording to avoid
@@ -26,6 +28,7 @@ def _make_env(gym_id, seed, idx, capture_video, run_name, render, renderAll=Fals
     Returns:
         Callable that creates and returns the configured environment.
     """
+
     def thunk():
         if renderAll:
             render_mode = "human"
@@ -61,7 +64,13 @@ def make_envs(args, run_name) -> gym.vector.SyncVectorEnv:
     return gym.vector.SyncVectorEnv(
         [
             _make_env(
-                args.gym_id, args.seed + i, i, args.capture_video, args.render, args.renderAll, run_name
+                args.gym_id,
+                args.seed + i,
+                i,
+                args.capture_video,
+                args.render,
+                args.renderAll,
+                run_name,
             )
             for i in range(args.num_envs)
         ]

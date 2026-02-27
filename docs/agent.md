@@ -651,7 +651,7 @@ it prevents signals from growing or shrinking as they pass through layers.
 ```
                     std value      Why?
                     ─────────      ──────────────────────────────
-Hidden layers:      √2 ≈ 1.41     Compensates for Tanh squashing.
+Hidden layers:      √2 ≈ 1.41      Compensates for Tanh squashing.
                                    Keeps signal strength stable.
 
 Actor output:       0.01           Tiny weights → outputs near zero →
@@ -812,19 +812,3 @@ PPO adds entropy as a BONUS to the loss:
 ```
 
 ---
-
-## Note: Current Code is Incomplete
-
-The `get_action_and_value` method in the file is unfinished.
-It creates the distribution but doesn't return anything.
-The complete version should be:
-
-```python
-def get_action_and_value(self, x, action=None):
-    action_logits = self.actor(x)
-    distribution = Categorical(logits=action_logits)
-    if action is None:
-        action = distribution.sample()
-    return action, distribution.log_prob(action), distribution.entropy(), self.critic(x)
-```
-

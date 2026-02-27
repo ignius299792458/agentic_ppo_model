@@ -94,7 +94,12 @@ class Agent(nn.Module):
                 value: V(s) estimate, shape (batch, 1).
         """
         action_logits = self.actor(x)
-        probs = Categorical(logits=action_logits)
+        distribution = Categorical(logits=action_logits)
         if action is None:
-            action = probs.sample()
-        return action, probs.log_prob(action), probs.entropy(), self.critic(x)
+            action = distribution.sample()
+        return (
+            action,
+            distribution.log_prob(action),
+            distribution.entropy(),
+            self.critic(x),
+        )

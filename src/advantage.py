@@ -48,7 +48,9 @@ def compute_advantages(args, agent, next_obs, next_done, storage, device):
                 else:
                     nextnonterminal = 1.0 - dones[t + 1]
                     nextvalues = values[t + 1]
-                delta = rewards[t] + args.gamma * nextvalues * nextnonterminal - values[t]
+                delta = (
+                    rewards[t] + args.gamma * nextvalues * nextnonterminal - values[t]
+                )
                 advantages[t] = lastgaelam = (
                     delta + args.gamma * args.gae_lambda * nextnonterminal * lastgaelam
                 )
