@@ -1,9 +1,25 @@
+"""Command-line argument parsing for PPO hyperparameters.
+
+Defines all configurable parameters: environment, training, PPO-specific
+coefficients, logging, and rendering options. Also computes derived values
+(batch_size, minibatch_size) from the provided arguments.
+"""
+
 import argparse
 import os
 from distutils.util import strtobool
 
 
 def parse_args():
+    """Parse CLI arguments and compute derived batch sizes.
+
+    Derived values:
+        batch_size = num_envs * num_steps
+        minibatch_size = batch_size // num_minibatches
+
+    Returns:
+        argparse.Namespace: All hyperparameters as attributes.
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--exp-name",

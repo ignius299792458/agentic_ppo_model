@@ -1,8 +1,38 @@
+"""Experience collection (rollout phase).
+
+Runs the current policy in the vectorized environment for num_steps,
+storing observations, actions, log-probs, rewards, dones, and values
+into the pre-allocated storage tensors. Logs episode statistics when
+environments finish episodes.
+"""
+
 import numpy as np
 import torch
 
 
 def rollout(args, agent, envs, device, storage, next_obs, next_done, global_step, writer):
+    """Collect a full rollout of experience from the environment.
+
+    For each step:
+      1. Query agent for action, log_prob, value (no gradient)
+      2. Step the environment with the action
+      3. Store transition data in the storage buffers
+      4. Log completed episode stats to TensorBoard
+
+    Args:
+        args: Parsed arguments with num_steps, num_envs.
+        agent: The Actor-Critic agent.
+        envs: Vectorized gymnasium environment.
+        device: torch.device for tensor placement.
+        storage: Tuple of (obs, actions, logprobs, rewards, dones, values) tensors.
+        next_obs: Current observation tensor, shape (num_envs, obs_dim).
+        next_done: Current done flags tensor, shape (num_envs,).
+        global_step: Running count of total environment steps taken.
+        writer: TensorBoard SummaryWriter for logging episode returns.
+
+    Returns:
+        Tuple of (next_obs, next_done, global_step) — updated state after rollout.
+    """
     obs, actions, logprobs, rewards, dones, values = storage
 
     for step in range(args.num_steps):

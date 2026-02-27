@@ -1,3 +1,20 @@
+"""PPO training entry point.
+
+Orchestrates the full training loop:
+  1. Parse args, set seeds, create envs and agent
+  2. For each update:
+     a. Optionally anneal learning rate
+     b. Collect rollout experience
+     c. Compute advantages (GAE)
+     d. Run PPO minibatch updates
+     e. Log metrics to TensorBoard
+  3. Clean up
+
+Usage:
+    python -m src.main
+    python -m src.main --render --total-timesteps 100000
+"""
+
 import datetime
 import time
 import torch
@@ -14,6 +31,13 @@ from src.utils import seed_everything
 
 
 def main():
+    """Run the full PPO training loop.
+
+    Flow:
+        parse_args -> seed -> make_envs -> Agent -> init_storage
+        -> for each update: rollout -> compute_advantages -> ppo_update -> log
+        -> close envs and writer
+    """
     args = parse_args()
     print(args)
 

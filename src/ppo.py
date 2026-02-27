@@ -1,9 +1,43 @@
+"""PPO clipped minibatch optimization.
+
+Implements the core PPO update: flattens the rollout batch, shuffles into
+minibatches, and performs multiple epochs of clipped policy and value
+updates with entropy regularization.
+"""
+
 import numpy as np
 import torch
 import torch.nn as nn
 
 
 def ppo_update(args, agent, optimizer, envs, storage, advantages, returns):
+    """Perform the PPO clipped surrogate objective update.
+
+    Steps:
+      1. Flatten rollout from (num_steps, num_envs) to (batch_size,)
+      2. For each epoch, shuffle indices and split into minibatches
+      3. For each minibatch:
+         a. Recompute log_prob, entropy, value from current policy
+         b. Compute probability ratio: r = exp(new_logprob - old_logprob)
+         c. Clipped policy loss: max(-A*r, -A*clip(r, 1-eps, 1+eps))
+         d. Clipped value loss: 0.5 * max((V-R)^2, (V_clip-R)^2)
+         e. Total loss = policy_loss + vf_coef*value_loss - ent_coef*entropy
+         f. Backprop with gradient clipping
+
+    Args:
+        args: Parsed arguments with batch_size, minibatch_size, update_epochs,
+              clip_coef, clip_vloss, ent_coef, vf_coef, max_grad_norm.
+        agent: The Actor-Critic agent.
+        optimizer: torch.optim.Adam optimizer.
+        envs: Vectorized environment (used to read obs/action shapes).
+        storage: Tuple of (obs, actions, logprobs, rewards, dones, values) tensors.
+        advantages: Advantage estimates, shape (num_steps, num_envs).
+        returns: Computed returns, shape (num_steps, num_envs).
+
+    Returns:
+        Dict with loss metrics: value_loss, policy_loss, entropy,
+        old_approx_kl, approx_kl, clipfrac, explained_variance.
+    """
     obs, actions, logprobs, _, _, values = storage
 
     b_obs = obs.reshape((-1,) + envs.single_observation_space.shape)
