@@ -238,7 +238,7 @@ Think of it as a pipeline of simple math operations:
            ▼
 
      ... repeat ...         Stack more layers = "deep" learning
-           
+
            │
            ▼
        OUTPUT (numbers)
@@ -342,11 +342,11 @@ an **agent** learns by **interacting** with an **environment**:
 └───────────┘               └─────────────┘
 ```
 
-**Agent**: the decision-maker (our neural network)
-**Environment**: the world (CartPole game)
-**Observation**: what the agent sees (pole angle, cart position, etc.)
-**Action**: what the agent does (push left or push right)
-**Reward**: feedback signal (+1 for each step the pole stays up)
+- **Agent**: the decision-maker (our neural network)
+- **Environment**: the world (CartPole game)
+- **Observation**: what the agent sees (pole angle, cart position, etc.)
+- **Action**: what the agent does (push left or push right)
+- **Reward**: feedback signal (+1 for each step the pole stays up)
 
 ## The Goal
 
@@ -539,7 +539,7 @@ Run the current policy in the environment and record everything:
 
 ```
 ┌─────┬──────────────────┬────────┬────────┬───────────┐
-│Step │ Observation       │ Action │ Reward │ log_prob  │
+│Step │ Observation      │ Action │ Reward │ log_prob  │
 ├─────┼──────────────────┼────────┼────────┼───────────┤
 │  1  │ [0.02, 0.15,...] │ LEFT   │  +1    │ -0.16     │
 │  2  │ [0.05, 0.11,...] │ RIGHT  │  +1    │ -0.69     │
@@ -612,8 +612,8 @@ This means:
 
 ```
 ┌──────────────────┐
-│ Collect rollout   │ ◄────────────────────────┐
-│ (run policy)      │                          │
+│ Collect rollout  │  ◄────────────────────────┐
+│ (run policy)     │                           │
 └────────┬─────────┘                           │
          ▼                                     │
 ┌──────────────────┐                           │
@@ -622,7 +622,7 @@ This means:
 └────────┬─────────┘                           │
          ▼                                     │
 ┌──────────────────┐                           │
-│ PPO update       │ × 4 epochs               │
+│ PPO update       │ × 4 epochs                │
 │ (clip + optimize)│ (reuse same rollout data) │
 └────────┬─────────┘                           │
          ▼                                     │
