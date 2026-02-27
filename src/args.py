@@ -134,6 +134,15 @@ def parse_args():
         default=False,
         help="if toggled, opens a live window to watch the agent play.",
     )
+    
+    parser.add_argument(
+        "--renderAll",
+        type=lambda x: bool(strtobool(x)),
+        nargs="?",
+        const=True,
+        default=False,
+        help="if toggled, renders all environments.",
+    )
 
     parser.add_argument(
         "--gae",
